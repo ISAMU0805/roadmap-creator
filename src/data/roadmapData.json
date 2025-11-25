@@ -6,6 +6,27 @@
     "steps": [
       {
         "id": 1,
+        "title": "検証",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 2,
+        "title": "新しいステップあああ",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 3,
+        "title": "新しいステップ",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 4,
         "title": "新しいステップ",
         "content": "説明を入力してください",
         "type": "setup",
