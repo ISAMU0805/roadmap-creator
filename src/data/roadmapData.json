@@ -59,6 +59,14 @@
     "gameId": "new_game_1764051625193",
     "gameName": "ファイル保存テスト",
     "description": "ここにゲームの説明が入ります",
-    "steps": []
+    "steps": [
+      {
+        "id": 1,
+        "title": "できてそう",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      }
+    ]
   }
 ]
