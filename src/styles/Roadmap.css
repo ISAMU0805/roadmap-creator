@@ -1,10 +1,13 @@
 /* src/styles/Roadmap.css */
 
 /* ==============================
-   アプリ全体のレイアウト（中央寄せ）
+   リセットとアプリ全体のレイアウト
    ============================== */
+* {
+    box-sizing: border-box; 
+}
 .roadmap-container {
-    width: 100vw;
+    width: 100%;
     min-height: 100vh;
     
     font-size: 110%; 
@@ -13,11 +16,50 @@
     flex-direction: column;
     align-items: center;
     
-    padding: 40px 20px;
+    /* 👇 修正: 上のパディングを100pxに増やして、ナビゲーションバーとの距離を確保 */
+    padding: 100px 20px 40px 20px; 
+    
     font-family: 'Arial', sans-serif;
     background-color: #f8f8f8;
     box-sizing: border-box;
 }
+
+/* ==============================
+   ナビゲーションバー
+   ============================== */
+.app-nav {
+    position: fixed; /* 画面に固定 */
+    top: 0;
+    left: 0;
+    width: 100%; 
+    background-color: #343a40; 
+    padding: 10px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+}
+
+.app-nav a {
+    color: white; 
+    text-decoration: none;
+    padding: 8px 15px;
+    margin: 0 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+    font-weight: bold;
+}
+
+.app-nav a:hover {
+    background-color: #495057;
+}
+
+.app-nav span {
+    color: #6c757d;
+    padding: 0 5px;
+    line-height: 2.2; 
+}
+
 
 /* ==============================
    メインレイアウト（横並び設定）
@@ -39,11 +81,11 @@
     margin-bottom: 20px;
     display: flex;
     justify-content: center;
-    flex-wrap: wrap; /* ボタンが多すぎるときに折り返す */
+    flex-wrap: wrap;
 }
 
 .game-selector button {
-    margin: 5px; /* マージンを調整 */
+    margin: 5px;
     padding: 8px 16px;
     cursor: pointer;
     border: none;
@@ -52,7 +94,7 @@
     font-size: 1em;
     background-color: #e0e0e0;
     color: #333;
-    white-space: nowrap; /* ボタン内のテキストが改行されないように */
+    white-space: nowrap;
 }
 
 .game-selector button.active {
@@ -79,7 +121,7 @@
     margin: 0;
 
     overflow-y: auto; 
-    overflow-x: hidden; /* 横スクロールを隠す */
+    overflow-x: hidden; 
     
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
@@ -181,7 +223,7 @@
     border-radius: 15px;
     border: 2px solid #eee;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    height: 600px; 
+    height: 600px;
     box-sizing: border-box;
     overflow-y: auto;
 }
@@ -211,7 +253,8 @@
    ============================== */
 @media (max-width: 768px) {
     .roadmap-container {
-        padding: 10px;
+        /* 👇 修正: スマホでもナビゲーションとかぶらないように余白調整 */
+        padding: 80px 10px 20px 10px; 
         font-size: 100%; 
     }
 
@@ -219,32 +262,31 @@
         flex-direction: column; 
         max-width: 100%;
         gap: 20px;
+        padding: 0 10px; 
     }
 
-    /* 👇 修正点: スマホの画面幅に合わせて可変にする */
     .roadmap-grid-container {
-        width: calc(100vw - 20px); /* 左右のパディング分を引く */
-        height: 600px; 
+        width: 100%; 
+        min-height: 400px;
+        height: auto; 
         margin: 0;
-        overflow-x: hidden; 
-        box-sizing: border-box; /* パディング・ボーダーをwidthに含める */
+        overflow-x: auto; 
+        box-sizing: border-box; 
     }
 
-    /* 👇 修正点: スマホの画面幅に合わせて可変にする */
     .detail-panel {
-        width: calc(100vw - 20px); /* 左右のパディング分を引く */
-        padding: 15px; /* パディングを少し調整 */
+        width: 100%; 
+        padding: 15px;
         min-width: unset; 
         height: auto; 
         margin-bottom: 20px;
         box-sizing: border-box;
     }
-
-    /* 👇 修正点: カードのサイズもスマホ用に少し縮小 */
+    
     .step-card {
-        width: 120px; /* カード幅を縮小 */
+        width: 120px; 
         min-height: 90px;
         padding: 8px;
-        font-size: 0.9em; /* フォントも少し小さく */
+        font-size: 0.9em; 
     }
 }

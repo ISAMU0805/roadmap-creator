@@ -20,6 +20,7 @@ const useWindowSize = () => {
                 height: window.innerHeight,
             });
         };
+        // 画面リサイズ時にフックが再実行されるようにする
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -39,7 +40,7 @@ function App() {
   
   const [isAdminLinkVisible, setIsAdminLinkVisible] = useState(false); 
 
-  // ... (中略: シークレットコマンド、handleGameSelect はそのまま) ...
+  // --- シークレットコマンドの処理 ---
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey && event.altKey && event.key === 'a') {
@@ -66,11 +67,9 @@ function App() {
   // ==========================================
   // 📐 自動レイアウト設定 (COLUMNS_PER_ROWが自動計算されます)
   // ==========================================
-  const PC_BOARD_WIDTH = 1000;    // PC表示の盤面幅
-  const MOBILE_CARD_WIDTH = 140; // カードの幅
-  const PC_COLUMNS = 4;           // PCのデフォルト列数
-  const MOBILE_COLUMNS = 2;       // スマホ/タブレットのデフォルト列数
-
+  const PC_BOARD_WIDTH = 1000;    // PC表示の盤面幅 (CSSと合わせる)
+  
+  // PCでの設定
   const X_SPACING = 300;        // 横の間隔
   const Y_SPACING = 180;      
   const PADDING_X = 50;       
@@ -78,9 +77,13 @@ function App() {
   const CARD_CENTER_OFFSET_X = 70; 
   const CARD_CENTER_OFFSET_Y = 60; 
   
+  // スマホでの設定
+  const MOBILE_COLUMNS = 2;       // スマホ/タブレットのデフォルト列数
+  const MOBILE_X_SPACING = 160;   // スマホでの横の間隔
+  
+  
   /**
    * 1行に収まる最適な列数を決定するロジック
-   * (PCとスマホのどちらで開いているかによって、自動で列数が決定される)
    */
   const COLUMNS_PER_ROW = useMemo(() => {
     if (windowSize.width <= 768) {
@@ -91,7 +94,7 @@ function App() {
     const availableContentWidth = PC_BOARD_WIDTH - 2 * PADDING_X; 
     const columnConsumption = X_SPACING; 
     return Math.max(1, Math.floor(availableContentWidth / columnConsumption));
-  }, [windowSize.width, X_SPACING]); // 画面幅が変わったら再計算
+  }, [windowSize.width, X_SPACING]); 
 
 
   /**
@@ -105,8 +108,8 @@ function App() {
       col = (COLUMNS_PER_ROW - 1) - col;
     }
     
-    // 👇 修正: スマホ幅のときは、X_SPACINGを縮小して計算する
-    const currentXSpacing = windowSize.width <= 768 ? 160 : X_SPACING; 
+    // 画面幅によって使用する間隔を切り替える
+    const currentXSpacing = windowSize.width <= 768 ? MOBILE_X_SPACING : X_SPACING; 
 
     return {
       x: PADDING_X + (col * currentXSpacing),
@@ -115,6 +118,7 @@ function App() {
   };
 
   const totalRows = Math.ceil(selectedGame.steps.length / COLUMNS_PER_ROW);
+  // 必要な高さを計算し、最低600pxを確保
   const requiredHeight = Math.max(600, PADDING_Y + (totalRows * Y_SPACING) + 50);
 
 
@@ -144,14 +148,34 @@ function App() {
   // --- レンダリング ---
   return (
     <>
+      {/* 🛠️ スマホ用の隠しトグルボタン (画面右上の見えない部分をタップで管理者リンクを表示) */}
+      <div 
+        onClick={() => setIsAdminLinkVisible(true)} 
+        style={{ 
+          position: 'fixed', 
+          top: '60px', 
+          right: '5px', 
+          zIndex: 100, 
+          padding: '20px', 
+          opacity: 0.01, 
+          cursor: 'pointer' 
+        }}>
+        .
+      </div>
+
       <div className="app-nav">
         <Link to="/" style={{backgroundColor: '#ff9800'}}>生徒用ロードマップ</Link>
-        <span>|</span>
+        
+        {/* 👇 修正: Adminリンクが表示されている場合のみ、区切り線とリンクを表示 */}
         {isAdminLinkVisible && (
-          <Link to="/admin" className="admin-link-visible">管理・編集ツールへ</Link>
+          <>
+            <span>|</span>
+            <Link to="/admin" className="admin-link-visible">管理・編集ツールへ</Link>
+          </>
         )}
         {!isAdminLinkVisible && (
-          <span style={{width: '150px'}}></span> 
+          // リンクが隠れているときは何も表示しない
+          null 
         )}
       </div>
 
