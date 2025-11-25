@@ -1,69 +1,20 @@
 [
   {
-    "gameId": "shooting_game",
-    "gameName": "シューティングゲーム",
-    "description": "キーボードで自機を動かし、弾を撃って敵を倒すゲーム",
-    "steps": [
-      {
-        "id": 1,
-        "title": "検証",
-        "content": "説明を入力してください",
-        "type": "setup",
-        "image": ""
-      },
-      {
-        "id": 2,
-        "title": "新しいステップあああ",
-        "content": "説明を入力してください",
-        "type": "setup",
-        "image": ""
-      },
-      {
-        "id": 3,
-        "title": "新しいステップ",
-        "content": "説明を入力してください",
-        "type": "setup",
-        "image": ""
-      },
-      {
-        "id": 4,
-        "title": "新しいステップ",
-        "content": "説明を入力してください",
-        "type": "setup",
-        "image": ""
-      }
-    ]
-  },
-  {
-    "gameId": "new_game_1764046243768",
-    "gameName": "テスト",
-    "description": "",
-    "steps": [
-      {
-        "id": 1,
-        "title": "新しいステップ",
-        "content": "説明を入力してください",
-        "type": "setup",
-        "image": ""
-      },
-      {
-        "id": 2,
-        "title": "新しいステップ",
-        "content": "説明を入力してください",
-        "type": "setup",
-        "image": ""
-      }
-    ]
-  },
-  {
-    "gameId": "new_game_1764051625193",
-    "gameName": "ファイル保存テスト",
+    "gameId": "new_game_1764080469912",
+    "gameName": "スマホ対応テスト",
     "description": "ここにゲームの説明が入ります",
     "steps": [
       {
         "id": 1,
-        "title": "できてそう",
+        "title": "うまく行きますように",
         "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 2,
+        "title": "神様",
+        "content": "ららららららららら",
         "type": "setup",
         "image": ""
       }
