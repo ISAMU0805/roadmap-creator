@@ -54,5 +54,11 @@
         "image": ""
       }
     ]
+  },
+  {
+    "gameId": "new_game_1764051625193",
+    "gameName": "ファイル保存テスト",
+    "description": "ここにゲームの説明が入ります",
+    "steps": []
   }
 ]
