@@ -6,7 +6,31 @@ import StepDetail from './components/StepDetail';
 import { Link } from 'react-router-dom';
 import './styles/Roadmap.css'; 
 
+// 画面幅を監視し、幅が変わったら State を更新するカスタムフック
+const useWindowSize = () => {
+    const [size, setSize] = useState({
+        width: window.innerWidth,
+        height: window.innerHeight,
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            setSize({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    
+    return size;
+};
+
+
 function App() {
+  const windowSize = useWindowSize(); // 👈 画面サイズを取得
+  
   const [selectedGameId, setSelectedGameId] = useState(roadmapData[0].gameId); 
   const selectedGame = roadmapData.find(game => game.gameId === selectedGameId);
 
@@ -15,7 +39,7 @@ function App() {
   
   const [isAdminLinkVisible, setIsAdminLinkVisible] = useState(false); 
 
-  // --- シークレットコマンドの処理 ---
+  // ... (中略: シークレットコマンド、handleGameSelect はそのまま) ...
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey && event.altKey && event.key === 'a') {
@@ -24,7 +48,6 @@ function App() {
         console.log("管理者リンクが表示されました。"); 
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
@@ -39,18 +62,37 @@ function App() {
     }
   };
 
+
   // ==========================================
-  // 📐 自動レイアウト設定
+  // 📐 自動レイアウト設定 (COLUMNS_PER_ROWが自動計算されます)
   // ==========================================
-  const COLUMNS_PER_ROW = 3;  
-  const X_SPACING = 220;      
+  const PC_BOARD_WIDTH = 1000;    // PC表示の盤面幅
+  const MOBILE_CARD_WIDTH = 140; // カードの幅
+  const PC_COLUMNS = 4;           // PCのデフォルト列数
+  const MOBILE_COLUMNS = 2;       // スマホ/タブレットのデフォルト列数
+
+  const X_SPACING = 300;        // 横の間隔
   const Y_SPACING = 180;      
   const PADDING_X = 50;       
   const PADDING_Y = 50;       
-
-  // カードの中心ズレ補正（線の描画用）
   const CARD_CENTER_OFFSET_X = 70; 
   const CARD_CENTER_OFFSET_Y = 60; 
+  
+  /**
+   * 1行に収まる最適な列数を決定するロジック
+   * (PCとスマホのどちらで開いているかによって、自動で列数が決定される)
+   */
+  const COLUMNS_PER_ROW = useMemo(() => {
+    if (windowSize.width <= 768) {
+      // スマホ/タブレットの幅では、固定で2列にする
+      return MOBILE_COLUMNS;
+    }
+    // PC幅では、自動計算に任せる（CSSの幅1000pxと合わせる）
+    const availableContentWidth = PC_BOARD_WIDTH - 2 * PADDING_X; 
+    const columnConsumption = X_SPACING; 
+    return Math.max(1, Math.floor(availableContentWidth / columnConsumption));
+  }, [windowSize.width, X_SPACING]); // 画面幅が変わったら再計算
+
 
   /**
    * 📍 座標計算関数 (ジグザグ配置)
@@ -62,17 +104,21 @@ function App() {
     if (isOddRow) {
       col = (COLUMNS_PER_ROW - 1) - col;
     }
+    
+    // 👇 修正: スマホ幅のときは、X_SPACINGを縮小して計算する
+    const currentXSpacing = windowSize.width <= 768 ? 160 : X_SPACING; 
+
     return {
-      x: PADDING_X + (col * X_SPACING),
+      x: PADDING_X + (col * currentXSpacing),
       y: PADDING_Y + (row * Y_SPACING)
     };
   };
 
   const totalRows = Math.ceil(selectedGame.steps.length / COLUMNS_PER_ROW);
-  const requiredHeight = Math.max(500, PADDING_Y + (totalRows * Y_SPACING) + 50);
+  const requiredHeight = Math.max(600, PADDING_Y + (totalRows * Y_SPACING) + 50);
 
 
-  // --- SVGの線を計算 (直線に戻す) ---
+  // --- SVGの線を計算 (直線) ---
   const linesPath = useMemo(() => {
     if (!selectedGame || selectedGame.steps.length < 2) return '';
 
@@ -88,12 +134,11 @@ function App() {
       const endX = nextPos.x + CARD_CENTER_OFFSET_X;
       const endY = nextPos.y + CARD_CENTER_OFFSET_Y;
 
-      // 👇 修正: M (MoveTo) と L (LineTo) で直線を引く
       path += `M${startX} ${startY} L${endX} ${endY} `;
     }
 
     return path;
-  }, [selectedGame]);
+  }, [selectedGame, windowSize.width]); // 画面幅が変わったら再計算
 
 
   // --- レンダリング ---
@@ -133,7 +178,7 @@ function App() {
           <div className="roadmap-grid-container">
             <div 
               className="roadmap-steps" 
-              style={{ height: `${requiredHeight}px` }}
+              style={{ height: `${requiredHeight}px` }} 
             >
               {selectedGame.steps.map((step, index) => {
                 const pos = getStepPosition(index);
@@ -168,7 +213,7 @@ function App() {
                     stroke="#ff9800" 
                     strokeWidth="6" 
                     fill="none" 
-                    strokeDasharray="10 5" /* 👈 破線に戻す */
+                    strokeDasharray="10 5"
                  />
               </svg>
             </div>

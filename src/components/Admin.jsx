@@ -1,198 +1,201 @@
-// src/components/Admin.jsx
+// src/App.jsx
 
-import { useState } from 'react';
-import roadmapData from '../data/roadmapData.json';
+import roadmapData from './data/roadmapData.json';
+import { useState, useMemo, useEffect } from 'react'; 
+import StepDetail from './components/StepDetail'; 
 import { Link } from 'react-router-dom';
-import '../styles/Admin.css';
+import './styles/Roadmap.css'; 
 
-const Admin = () => {
-  // 編集中のデータをStateで管理（初期値は今のJSONデータ）
-  const [games, setGames] = useState(roadmapData);
+function App() {
+  const [selectedGameId, setSelectedGameId] = useState(roadmapData[0].gameId); 
+  const selectedGame = roadmapData.find(game => game.gameId === selectedGameId);
 
-  // --- データ操作関数 ---
+  const initialStepId = selectedGame ? selectedGame.steps[0].id : 1; 
+  const [selectedStepId, setSelectedStepId] = useState(initialStepId); 
+  
+  const [isAdminLinkVisible, setIsAdminLinkVisible] = useState(false); 
 
-  // ゲームの情報を更新
-  const updateGame = (gameIndex, field, value) => {
-    const newGames = [...games];
-    newGames[gameIndex][field] = value;
-    setGames(newGames);
-  };
-
-  // 新しいゲームを追加
-  const addGame = () => {
-    const newGame = {
-      gameId: `new_game_${Date.now()}`,
-      gameName: "新しいゲーム",
-      description: "ここにゲームの説明が入ります",
-      steps: []
+  // --- シークレットコマンドの処理 ---
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Ctrl + Alt + A で管理者リンクを表示
+      if (event.ctrlKey && event.altKey && event.key === 'a') {
+        event.preventDefault(); 
+        setIsAdminLinkVisible(true);
+        console.log("管理者リンクが表示されました。"); 
+      }
     };
-    setGames([...games, newGame]);
-  };
 
-  // ゲームを削除
-  const deleteGame = (gameIndex) => {
-    if (window.confirm("本当にこのゲームを削除しますか？")) {
-      const newGames = games.filter((_, i) => i !== gameIndex);
-      setGames(newGames);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleGameSelect = (gameId) => {
+    setSelectedGameId(gameId);
+    const newGame = roadmapData.find(game => game.gameId === gameId);
+    if (newGame) {
+      setSelectedStepId(newGame.steps[0].id);
     }
   };
 
-  // ステップを追加
-  const addStep = (gameIndex) => {
-    const newGames = [...games];
-    const newStepId = newGames[gameIndex].steps.length + 1;
-    newGames[gameIndex].steps.push({
-      id: newStepId,
-      title: "新しいステップ",
-      content: "説明を入力してください",
-      type: "setup",
-      image: ""
-    });
-    setGames(newGames);
+  // ==========================================
+  // 📐 自動レイアウト設定 (スマホ対応を強化)
+  // ==========================================
+  // 👇 修正点: PCとスマホで COLUMNS_PER_ROW を動的に切り替える
+  const getColumnsPerRow = () => {
+    // 画面幅が768px以下の場合は2列、それ以上の場合は3列をデフォルトにする
+    // カードのサイズと余白を考慮して、動的に調整することも可能だが、ここではシンプルに
+    if (window.innerWidth <= 768) {
+      return 2; // スマホ/タブレットでは2列表示
+    }
+    return 3; // PCでは3列表示
   };
 
-  // ステップの情報を更新
-  const updateStep = (gameIndex, stepIndex, field, value) => {
-    const newGames = [...games];
-    newGames[gameIndex].steps[stepIndex][field] = value;
-    setGames(newGames);
+  const COLUMNS_PER_ROW = useMemo(() => getColumnsPerRow(), [window.innerWidth]); // 画面幅に応じて列数を更新
+  
+  const X_SPACING = COLUMNS_PER_ROW === 2 ? 160 : 220; // 2列の時は間隔を狭く
+  const Y_SPACING = COLUMNS_PER_ROW === 2 ? 120 : 180; // 2列の時は間隔を狭く
+  const PADDING_X = 20;       // 左右のパディングを小さく
+  const PADDING_Y = 20;       // 上下のパディングを小さく
+
+  // カードの中心ズレ補正（線の描画用）
+  const CARD_CENTER_OFFSET_X = 70; 
+  const CARD_CENTER_OFFSET_Y = 60; 
+
+  /**
+   * 📍 座標計算関数 (ジグザグ配置)
+   */
+  const getStepPosition = (index) => {
+    const row = Math.floor(index / COLUMNS_PER_ROW);
+    let col = index % COLUMNS_PER_ROW;
+    const isOddRow = row % 2 !== 0;
+    if (isOddRow) {
+      col = (COLUMNS_PER_ROW - 1) - col;
+    }
+    return {
+      x: PADDING_X + (col * X_SPACING),
+      y: PADDING_Y + (row * Y_SPACING)
+    };
   };
 
-  // ステップを削除し、IDを振り直す
-  const deleteStep = (gameIndex, stepIndex) => {
-    const newGames = [...games];
-    // 削除
-    newGames[gameIndex].steps = newGames[gameIndex].steps.filter((_, i) => i !== stepIndex);
+  const totalRows = Math.ceil(selectedGame.steps.length / COLUMNS_PER_ROW);
+  // 盤面の高さを動的に計算
+  const requiredHeight = Math.max(600, PADDING_Y + (totalRows * Y_SPACING) + 50);
+
+
+  // --- SVGの線を計算 (直線) ---
+  const linesPath = useMemo(() => {
+    if (!selectedGame || selectedGame.steps.length < 2) return '';
+
+    let path = '';
+    const steps = selectedGame.steps;
     
-    // IDを振り直す（1, 2, 3... と順番になるように）
-    newGames[gameIndex].steps = newGames[gameIndex].steps.map((step, i) => ({...step, id: i + 1}));
-    setGames(newGames);
-  };
+    for (let i = 0; i < steps.length - 1; i++) {
+      const currentPos = getStepPosition(i);
+      const nextPos = getStepPosition(i + 1);
 
-  // --- JSONダウンロード機能（マルチユーザー運用に必須） ---
-  const handleDownload = () => {
-    // 編集中のデータ全体をJSON文字列に変換
-    const jsonString = JSON.stringify(games, null, 2);
-    // Blob（ファイルのようなもの）を作成
-    const blob = new Blob([jsonString], { type: "application/json" });
-    // ダウンロードリンクを作成してクリックさせる
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    // ダウンロードファイル名は必ず master file と同じに
-    link.download = "roadmapData.json"; 
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    alert("✅ roadmapData.json をダウンロードしました。\n\nこのファイルを管理者に送ってください。");
-  };
+      const startX = currentPos.x + CARD_CENTER_OFFSET_X;
+      const startY = currentPos.y + CARD_CENTER_OFFSET_Y;
+      const endX = nextPos.x + CARD_CENTER_OFFSET_X;
+      const endY = nextPos.y + CARD_CENTER_OFFSET_Y;
 
-  // --- 画面描画 ---
+      path += `M${startX} ${startY} L${endX} ${endY} `;
+    }
+
+    return path;
+  }, [selectedGame]);
+
+
+  // --- レンダリング ---
   return (
     <>
-      {/* ナビゲーションバー */}
       <div className="app-nav">
-        <Link to="/">生徒用ページへ（確認）</Link>
+        <Link to="/" style={{backgroundColor: '#ff9800'}}>生徒用ロードマップ</Link>
         <span>|</span>
-        <Link to="/admin" style={{backgroundColor: '#007bff'}}>管理・編集ツール</Link>
+        {isAdminLinkVisible && (
+          <Link to="/admin" className="admin-link-visible">管理・編集ツールへ</Link>
+        )}
+        {!isAdminLinkVisible && (
+          <span style={{width: '150px'}}></span> 
+        )}
       </div>
 
-      <div className="admin-container">
-        <div className="admin-header">
-          <h1>🛠️ ロードマップ作成ツール</h1>
-          {/* 👇 ボタンの機能をダウンロードに戻す */}
-          <button className="save-button" onClick={handleDownload}>
-            ⬇️ JSONをダウンロード
-          </button>
-          <p className="note">
-            ※編集後、ダウンロードされた <code>roadmapData.json</code> を管理者に送り、**上書き保存＋再デプロイ**を依頼してください。
-          </p>
+      <div className="roadmap-container">
+        
+        {/* ゲーム切り替えボタン */}
+        <div className="game-selector"> 
+          {roadmapData.map(game => (
+            <button
+              key={game.gameId}
+              onClick={() => handleGameSelect(game.gameId)}
+              className={game.gameId === selectedGameId ? 'active' : ''}
+            >
+              {game.gameName}
+            </button>
+          ))}
         </div>
+        
+        <h1>{selectedGame.gameName} ロードマップ</h1>
+        
+        <div className="main-layout">
+          
+          {/* 左側：ロードマップ（スクロール可能エリア） */}
+          <div className="roadmap-grid-container">
+            <div 
+              className="roadmap-steps" 
+              style={{ height: `${requiredHeight}px` }} 
+            >
+              {selectedGame.steps.map((step, index) => {
+                const pos = getStepPosition(index);
 
-        {games.map((game, gameIndex) => (
-          <div key={game.gameId} className="admin-game-card">
-            <div className="game-header">
-              <input
-                type="text"
-                value={game.gameName}
-                onChange={(e) => updateGame(gameIndex, 'gameName', e.target.value)}
-                className="input-title"
-                placeholder="ゲーム名"
-              />
-              <button className="delete-btn" onClick={() => deleteGame(gameIndex)}>ゲーム削除</button>
-            </div>
-            
-            <div className="form-group">
-              <label>ID:</label>
-              <input
-                type="text"
-                value={game.gameId}
-                onChange={(e) => updateGame(gameIndex, 'gameId', e.target.value)}
-                placeholder="例: flappy_bird"
-              />
-              <label>説明:</label>
-              <input
-                type="text"
-                value={game.description}
-                onChange={(e) => updateGame(gameIndex, 'description', e.target.value)}
-                style={{width: '50%'}}
-                placeholder="このゲームの概要"
-              />
-            </div>
-
-            <h3>ステップ一覧</h3>
-            <div className="steps-list">
-              {game.steps.map((step, stepIndex) => (
-                <div key={step.id} className="admin-step-card">
-                  <div className="step-header">
-                    <span className="step-number">Step {step.id}</span>
-                    <button className="delete-btn-sm" onClick={() => deleteStep(gameIndex, stepIndex)}>×</button>
+                return (
+                  <div 
+                    key={step.id} 
+                    onClick={() => setSelectedStepId(step.id)} 
+                    className={`step-card ${step.id === selectedStepId ? 'active' : ''}`}
+                    style={{
+                      top: `${pos.y}px`,
+                      left: `${pos.x}px`,
+                    }}
+                  >
+                    {step.image && (
+                      <img 
+                        src={step.image} 
+                        alt={step.title} 
+                        className="step-image" 
+                      />
+                    )}
+                    <h3 className="step-id">Step {step.id}</h3>
+                    <p className="step-title">{step.title}</p>
                   </div>
-                  
-                  <div className="form-row">
-                    <label>タイトル:</label>
-                    <input
-                      type="text"
-                      value={step.title}
-                      onChange={(e) => updateStep(gameIndex, stepIndex, 'title', e.target.value)}
-                      placeholder="例: ジャンプのプログラミング"
-                    />
-                  </div>
-                  
-                  <div className="form-row">
-                    <label>内容:</label>
-                    <textarea
-                      value={step.content}
-                      onChange={(e) => updateStep(gameIndex, stepIndex, 'content', e.target.value)}
-                      placeholder="このステップで学ぶ具体的なこと"
-                    />
-                  </div>
-
-                  <div className="form-row">
-                    <label>画像パス:</label>
-                    <input
-                      type="text"
-                      value={step.image || ""}
-                      placeholder="/images/sample.png"
-                      onChange={(e) => updateStep(gameIndex, stepIndex, 'image', e.target.value)}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               
-              <button className="add-step-btn" onClick={() => addStep(gameIndex)}>
-                ＋ ステップを追加
-              </button>
+              {/* 線の描画 */}
+              <svg className="roadmap-lines">
+                 <path 
+                    d={linesPath} 
+                    stroke="#ff9800" 
+                    strokeWidth="6" 
+                    fill="none" 
+                    strokeDasharray="10 5"
+                 />
+              </svg>
             </div>
           </div>
-        ))}
+          
+          {/* 右側：詳細パネル */}
+          <div className="detail-panel">
+            <h2>ステップ詳細</h2>
+            <StepDetail steps={selectedGame.steps} selectedId={selectedStepId} />
+          </div>
 
-        <button className="add-game-btn" onClick={addGame}>
-          ＋ 新しいゲームを追加
-        </button>
+        </div>
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Admin;
+export default App
