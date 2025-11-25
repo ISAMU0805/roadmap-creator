@@ -46,8 +46,7 @@ const Admin = () => {
       title: "新しいステップ",
       content: "説明を入力してください",
       type: "setup",
-      image: "",
-      // 自動配置が有効なので、x/y座標は設定不要
+      image: ""
     });
     setGames(newGames);
   };
@@ -70,28 +69,22 @@ const Admin = () => {
     setGames(newGames);
   };
 
-  // --- JSON自動保存機能（Expressサーバーと連携） ---
-  const handleSave = async () => {
-    try {
-      const response = await fetch('/api/save-json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // 編集中のデータ全体をJSON形式でサーバーに送る
-        body: JSON.stringify(games),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        alert("✅ データの自動保存が完了しました！");
-      } else {
-        alert(`❌ 保存失敗: ${result.message || 'サーバーエラーが発生しました。'}`);
-      }
-    } catch (error) {
-      alert("❌ サーバーとの通信に失敗しました。サーバーが起動しているか確認してください。");
-    }
+  // --- JSONダウンロード機能（マルチユーザー運用に必須） ---
+  const handleDownload = () => {
+    // 編集中のデータ全体をJSON文字列に変換
+    const jsonString = JSON.stringify(games, null, 2);
+    // Blob（ファイルのようなもの）を作成
+    const blob = new Blob([jsonString], { type: "application/json" });
+    // ダウンロードリンクを作成してクリックさせる
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    // ダウンロードファイル名は必ず master file と同じに
+    link.download = "roadmapData.json"; 
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    alert("✅ roadmapData.json をダウンロードしました。\n\nこのファイルを管理者に送ってください。");
   };
 
   // --- 画面描画 ---
@@ -107,10 +100,13 @@ const Admin = () => {
       <div className="admin-container">
         <div className="admin-header">
           <h1>🛠️ ロードマップ作成ツール</h1>
-          <button className="save-button" onClick={handleSave}>
-            💾 JSONを自動保存
+          {/* 👇 ボタンの機能をダウンロードに戻す */}
+          <button className="save-button" onClick={handleDownload}>
+            ⬇️ JSONをダウンロード
           </button>
-          <p className="note">※保存が成功したら、生徒用ページを**リロード**すると内容が更新されます。</p>
+          <p className="note">
+            ※編集後、ダウンロードされた <code>roadmapData.json</code> を管理者に送り、**上書き保存＋再デプロイ**を依頼してください。
+          </p>
         </div>
 
         {games.map((game, gameIndex) => (
