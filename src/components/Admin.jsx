@@ -1,24 +1,38 @@
 // src/components/Admin.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import roadmapData from '../data/roadmapData.json';
 import { Link } from 'react-router-dom';
 import '../styles/Admin.css';
 
 const Admin = () => {
-  // 編集中のデータをStateで管理（初期値は今のJSONデータ）
-  const [games, setGames] = useState(roadmapData);
+  // 修正: 初期値をローカルストレージから取得（なければJSONファイルから）
+  const [games, setGames] = useState(() => {
+    const savedData = localStorage.getItem('roadmapData');
+    return savedData ? JSON.parse(savedData) : roadmapData;
+  });
+
+  // ドラッグ操作用の参照
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+
+  // 自動スクロール用の参照
+  const scrollSpeed = useRef(0);
+  const animationFrameId = useRef(null);
+
+  // 修正: gamesの状態が変わるたびにローカルストレージに保存
+  useEffect(() => {
+    localStorage.setItem('roadmapData', JSON.stringify(games));
+  }, [games]);
 
   // --- データ操作関数 ---
 
-  // ゲームの情報を更新
   const updateGame = (gameIndex, field, value) => {
     const newGames = [...games];
     newGames[gameIndex][field] = value;
     setGames(newGames);
   };
 
-  // 新しいゲームを追加
   const addGame = () => {
     const newGame = {
       gameId: `new_game_${Date.now()}`,
@@ -29,7 +43,6 @@ const Admin = () => {
     setGames([...games, newGame]);
   };
 
-  // ゲームを削除
   const deleteGame = (gameIndex) => {
     if (window.confirm("本当にこのゲームを削除しますか？")) {
       const newGames = games.filter((_, i) => i !== gameIndex);
@@ -37,7 +50,6 @@ const Admin = () => {
     }
   };
 
-  // ステップを追加
   const addStep = (gameIndex) => {
     const newGames = [...games];
     const newStepId = newGames[gameIndex].steps.length + 1;
@@ -51,35 +63,99 @@ const Admin = () => {
     setGames(newGames);
   };
 
-  // ステップの情報を更新
   const updateStep = (gameIndex, stepIndex, field, value) => {
     const newGames = [...games];
     newGames[gameIndex].steps[stepIndex][field] = value;
     setGames(newGames);
   };
 
-  // ステップを削除し、IDを振り直す
   const deleteStep = (gameIndex, stepIndex) => {
     const newGames = [...games];
-    // 削除
     newGames[gameIndex].steps = newGames[gameIndex].steps.filter((_, i) => i !== stepIndex);
-    
-    // IDを振り直す（1, 2, 3... と順番になるように）
+    // IDを振り直す
     newGames[gameIndex].steps = newGames[gameIndex].steps.map((step, i) => ({...step, id: i + 1}));
     setGames(newGames);
   };
 
-  // --- JSONダウンロード機能（マルチユーザー運用に必須） ---
+  // --- 自動スクロール機能 ---
+  
+  const handleWindowDragOver = (e) => {
+    const threshold = 100;
+    const maxSpeed = 20;
+    const { innerHeight } = window;
+    const clientY = e.clientY;
+
+    if (clientY < threshold) {
+      const intensity = (threshold - clientY) / threshold;
+      scrollSpeed.current = -(maxSpeed * intensity);
+    } else if (clientY > innerHeight - threshold) {
+      const intensity = (clientY - (innerHeight - threshold)) / threshold;
+      scrollSpeed.current = maxSpeed * intensity;
+    } else {
+      scrollSpeed.current = 0;
+    }
+  };
+
+  const performAutoScroll = () => {
+    if (scrollSpeed.current !== 0) {
+      window.scrollBy(0, scrollSpeed.current);
+    }
+    animationFrameId.current = requestAnimationFrame(performAutoScroll);
+  };
+
+  // --- ドラッグ＆ドロップ並び替え機能 ---
+  
+  const handleDragStart = (e, position) => {
+    dragItem.current = position;
+    e.target.closest('.admin-step-card').classList.add('dragging');
+    
+    window.addEventListener('dragover', handleWindowDragOver);
+    animationFrameId.current = requestAnimationFrame(performAutoScroll);
+  };
+
+  const handleDragEnter = (e, position, gameIndex) => {
+    dragOverItem.current = position;
+    
+    if (dragItem.current === null || dragItem.current === dragOverItem.current) return;
+
+    const newGames = [...games];
+    const gameSteps = [...newGames[gameIndex].steps];
+    
+    const draggedStepContent = gameSteps[dragItem.current];
+    gameSteps.splice(dragItem.current, 1);
+    gameSteps.splice(dragOverItem.current, 0, draggedStepContent);
+
+    // IDを順番通りに振り直す
+    const reIndexedSteps = gameSteps.map((step, i) => ({
+      ...step,
+      id: i + 1
+    }));
+
+    newGames[gameIndex].steps = reIndexedSteps;
+    setGames(newGames);
+
+    dragItem.current = dragOverItem.current;
+  };
+
+  const handleDragEnd = (e) => {
+    dragItem.current = null;
+    dragOverItem.current = null;
+    e.target.closest('.admin-step-card').classList.remove('dragging');
+    
+    window.removeEventListener('dragover', handleWindowDragOver);
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+    }
+    scrollSpeed.current = 0;
+  };
+
+  // --- JSONダウンロード機能 ---
   const handleDownload = () => {
-    // 編集中のデータ全体をJSON文字列に変換
     const jsonString = JSON.stringify(games, null, 2);
-    // Blob（ファイルのようなもの）を作成
     const blob = new Blob([jsonString], { type: "application/json" });
-    // ダウンロードリンクを作成してクリックさせる
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    // ダウンロードファイル名は必ず master file と同じに
     link.download = "roadmapData.json"; 
     link.click();
     URL.revokeObjectURL(url);
@@ -87,10 +163,17 @@ const Admin = () => {
     alert("✅ roadmapData.json をダウンロードしました。\n\nこのファイルを管理者に送ってください。");
   };
 
+  // 追加機能: 編集リセットボタン（デバッグ用などに便利）
+  const handleReset = () => {
+    if(window.confirm("編集中のデータを破棄して、元のファイルの状態に戻しますか？")) {
+      localStorage.removeItem('roadmapData');
+      window.location.reload();
+    }
+  }
+
   // --- 画面描画 ---
   return (
     <>
-      {/* ナビゲーションバー */}
       <div className="app-nav">
         <Link to="/">生徒用ページへ（確認）</Link>
         <span>|</span>
@@ -100,11 +183,16 @@ const Admin = () => {
       <div className="admin-container">
         <div className="admin-header">
           <h1>🛠️ ロードマップ作成ツール</h1>
-          <button className="save-button" onClick={handleDownload}>
-            ⬇️ JSONをダウンロード
-          </button>
+          <div style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
+            <button className="save-button" onClick={handleDownload}>
+                ⬇️ JSONをダウンロード
+            </button>
+            <button onClick={handleReset} style={{padding:'10px', cursor:'pointer', border:'1px solid #ccc', background:'#fff', borderRadius:'5px'}}>
+                🔄 元に戻す
+            </button>
+          </div>
           <p className="note">
-            ※編集後、ダウンロードされた <code>roadmapData.json</code> を管理者に送り、**上書き保存＋再デプロイ**を依頼してください。
+            ※編集内容はブラウザに一時保存されます。ダウンロードした <code>roadmapData.json</code> を管理者に送ることで正式に保存されます。
           </p>
         </div>
 
@@ -118,7 +206,18 @@ const Admin = () => {
                 className="input-title"
                 placeholder="ゲーム名"
               />
-              <button className="delete-btn" onClick={() => deleteGame(gameIndex)}>ゲーム削除</button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <a 
+                  href={`/print/${game.gameId}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="delete-btn"
+                  style={{ backgroundColor: '#6f42c1', textDecoration: 'none', textAlign: 'center', display:'flex', alignItems:'center' }}
+                >
+                  🖨️ 台紙を印刷
+                </a>
+                <button className="delete-btn" onClick={() => deleteGame(gameIndex)}>削除</button>
+              </div>
             </div>
             
             <div className="form-group">
@@ -139,12 +238,27 @@ const Admin = () => {
               />
             </div>
 
-            <h3>ステップ一覧</h3>
+            <h3>ステップ一覧 (≡ をドラッグして並び替え)</h3>
             <div className="steps-list">
               {game.steps.map((step, stepIndex) => (
-                <div key={step.id} className="admin-step-card">
+                <div 
+                  key={step.id} 
+                  className="admin-step-card"
+                  onDragEnter={(e) => handleDragEnter(e, stepIndex, gameIndex)}
+                  onDragOver={(e) => e.preventDefault()} 
+                >
                   <div className="step-header">
-                    <span className="step-number">Step {step.id}</span>
+                    <div className="step-header-left">
+                      <span 
+                        className="drag-handle"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, stepIndex)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        ☰
+                      </span>
+                      <span className="step-number">Step {step.id}</span>
+                    </div>
                     <button className="delete-btn-sm" onClick={() => deleteStep(gameIndex, stepIndex)}>×</button>
                   </div>
                   

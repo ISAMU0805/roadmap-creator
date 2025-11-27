@@ -3,10 +3,8 @@
 /* ==============================
    基本レイアウト
    ============================== */
-
-/* 修正点: 最大幅を復活させ、中央寄せにする */
 .admin-container {
-  max-width: 900px; /* 👈 前の適切なサイズに戻す */
+  max-width: 900px;
   margin: 0 auto;
   padding: 40px 20px;
   font-family: sans-serif;
@@ -20,9 +18,11 @@
   border-radius: 10px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   margin-bottom: 30px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  
+  /* 👇 修正: sticky(追従)を削除して、普通に配置されるように変更 */
+  position: relative; 
+  /* top: 0; は削除 */
+  /* z-index: 100; は削除 */
 }
 
 .note {
@@ -107,12 +107,41 @@ textarea { height: 60px; resize: vertical; }
   padding: 15px;
   border-radius: 5px;
   margin-bottom: 10px;
+  transition: transform 0.2s, box-shadow 0.2s; /* アニメーション用 */
+}
+
+/* ドラッグ中のスタイル */
+.admin-step-card.dragging {
+  opacity: 0.5;
+  border: 2px dashed #007bff;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  background-color: #e7f1ff;
 }
 
 .step-header {
   display: flex;
   justify-content: space-between;
+  align-items: center; /* 縦位置中央揃え */
   margin-bottom: 10px;
+}
+
+.step-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ドラッグ用のハンドル（つまみ） */
+.drag-handle {
+  cursor: grab;
+  font-size: 20px;
+  color: #adb5bd;
+  padding: 0 5px;
+  user-select: none; /* テキスト選択防止 */
+}
+.drag-handle:active {
+  cursor: grabbing;
+  color: #007bff;
 }
 
 /* ボタン類 */
@@ -188,7 +217,7 @@ textarea { height: 60px; resize: vertical; }
 }
 
 /* ==============================
-   レスポンシブ対応 (Adminページ専用のスマホ調整)
+   レスポンシブ対応
    ============================== */
 @media (max-width: 600px) {
     .admin-container {

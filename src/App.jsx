@@ -1,12 +1,12 @@
 // src/App.jsx
 
-import roadmapData from './data/roadmapData.json';
+// デフォルトデータを別名でインポート
+import defaultRoadmapData from './data/roadmapData.json';
 import { useState, useMemo, useEffect } from 'react'; 
 import StepDetail from './components/StepDetail'; 
 import { Link } from 'react-router-dom';
 import './styles/Roadmap.css'; 
 
-// 画面幅を監視し、幅が変わったら State を更新するカスタムフック
 const useWindowSize = () => {
     const [size, setSize] = useState({
         width: window.innerWidth,
@@ -20,7 +20,6 @@ const useWindowSize = () => {
                 height: window.innerHeight,
             });
         };
-        // 画面リサイズ時にフックが再実行されるようにする
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -28,19 +27,23 @@ const useWindowSize = () => {
     return size;
 };
 
-
 function App() {
-  const windowSize = useWindowSize(); // 👈 画面サイズを取得
+  const windowSize = useWindowSize();
   
+  // 修正: データをローカルストレージから取得（プレビュー機能）
+  const roadmapData = useMemo(() => {
+    const savedData = localStorage.getItem('roadmapData');
+    return savedData ? JSON.parse(savedData) : defaultRoadmapData;
+  }, []);
+
   const [selectedGameId, setSelectedGameId] = useState(roadmapData[0].gameId); 
-  const selectedGame = roadmapData.find(game => game.gameId === selectedGameId);
+  const selectedGame = roadmapData.find(game => game.gameId === selectedGameId) || roadmapData[0];
 
   const initialStepId = selectedGame ? selectedGame.steps[0].id : 1; 
   const [selectedStepId, setSelectedStepId] = useState(initialStepId); 
   
   const [isAdminLinkVisible, setIsAdminLinkVisible] = useState(false); 
 
-  // --- シークレットコマンドの処理 ---
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.ctrlKey && event.altKey && event.key === 'a') {
@@ -63,43 +66,27 @@ function App() {
     }
   };
 
-
-  // ==========================================
-  // 📐 自動レイアウト設定 (COLUMNS_PER_ROWが自動計算されます)
-  // ==========================================
-  const PC_BOARD_WIDTH = 1000;    // PC表示の盤面幅 (CSSと合わせる)
-  
-  // PCでの設定
-  const X_SPACING = 300;        // 横の間隔
+  // --- レイアウト設定 ---
+  const PC_BOARD_WIDTH = 1000;
+  const X_SPACING = 300;
   const Y_SPACING = 180;      
   const PADDING_X = 50;       
   const PADDING_Y = 50;       
   const CARD_CENTER_OFFSET_X = 70; 
   const CARD_CENTER_OFFSET_Y = 60; 
   
-  // スマホでの設定
-  const MOBILE_COLUMNS = 2;       // スマホ/タブレットのデフォルト列数
-  const MOBILE_X_SPACING = 160;   // スマホでの横の間隔
+  const MOBILE_COLUMNS = 2;
+  const MOBILE_X_SPACING = 160;
   
-  
-  /**
-   * 1行に収まる最適な列数を決定するロジック
-   */
   const COLUMNS_PER_ROW = useMemo(() => {
     if (windowSize.width <= 768) {
-      // スマホ/タブレットの幅では、固定で2列にする
       return MOBILE_COLUMNS;
     }
-    // PC幅では、自動計算に任せる（CSSの幅1000pxと合わせる）
     const availableContentWidth = PC_BOARD_WIDTH - 2 * PADDING_X; 
     const columnConsumption = X_SPACING; 
     return Math.max(1, Math.floor(availableContentWidth / columnConsumption));
   }, [windowSize.width, X_SPACING]); 
 
-
-  /**
-   * 📍 座標計算関数 (ジグザグ配置)
-   */
   const getStepPosition = (index) => {
     const row = Math.floor(index / COLUMNS_PER_ROW);
     let col = index % COLUMNS_PER_ROW;
@@ -108,7 +95,6 @@ function App() {
       col = (COLUMNS_PER_ROW - 1) - col;
     }
     
-    // 画面幅によって使用する間隔を切り替える
     const currentXSpacing = windowSize.width <= 768 ? MOBILE_X_SPACING : X_SPACING; 
 
     return {
@@ -118,11 +104,8 @@ function App() {
   };
 
   const totalRows = Math.ceil(selectedGame.steps.length / COLUMNS_PER_ROW);
-  // 必要な高さを計算し、最低600pxを確保
   const requiredHeight = Math.max(600, PADDING_Y + (totalRows * Y_SPACING) + 50);
 
-
-  // --- SVGの線を計算 (直線) ---
   const linesPath = useMemo(() => {
     if (!selectedGame || selectedGame.steps.length < 2) return '';
 
@@ -142,13 +125,11 @@ function App() {
     }
 
     return path;
-  }, [selectedGame, windowSize.width]); // 画面幅が変わったら再計算
-
+  }, [selectedGame, windowSize.width]);
 
   // --- レンダリング ---
   return (
     <>
-      {/* 🛠️ スマホ用の隠しトグルボタン (画面右上の見えない部分をタップで管理者リンクを表示) */}
       <div 
         onClick={() => setIsAdminLinkVisible(true)} 
         style={{ 
@@ -166,22 +147,16 @@ function App() {
       <div className="app-nav">
         <Link to="/" style={{backgroundColor: '#ff9800'}}>生徒用ロードマップ</Link>
         
-        {/* 👇 修正: Adminリンクが表示されている場合のみ、区切り線とリンクを表示 */}
         {isAdminLinkVisible && (
           <>
             <span>|</span>
             <Link to="/admin" className="admin-link-visible">管理・編集ツールへ</Link>
           </>
         )}
-        {!isAdminLinkVisible && (
-          // リンクが隠れているときは何も表示しない
-          null 
-        )}
       </div>
 
       <div className="roadmap-container">
         
-        {/* ゲーム切り替えボタン */}
         <div className="game-selector"> 
           {roadmapData.map(game => (
             <button
@@ -198,7 +173,6 @@ function App() {
         
         <div className="main-layout">
           
-          {/* 左側：ロードマップ（スクロール可能エリア） */}
           <div className="roadmap-grid-container">
             <div 
               className="roadmap-steps" 
@@ -230,7 +204,6 @@ function App() {
                 );
               })}
               
-              {/* 線の描画 */}
               <svg className="roadmap-lines">
                  <path 
                     d={linesPath} 
@@ -243,7 +216,6 @@ function App() {
             </div>
           </div>
           
-          {/* 右側：詳細パネル */}
           <div className="detail-panel">
             <h2>ステップ詳細</h2>
             <StepDetail steps={selectedGame.steps} selectedId={selectedStepId} />
