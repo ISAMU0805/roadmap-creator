@@ -1,20 +1,62 @@
 [
   {
     "gameId": "new_game_1764080469912",
-    "gameName": "スマホ対応テスト",
-    "description": "ここにゲームの説明が入ります",
+    "gameName": "スイカゲーム（仮）",
+    "description": "果物を落としてスイカを作ろう！！！",
     "steps": [
       {
         "id": 1,
-        "title": "うまく行きますように",
-        "content": "説明を入力してください",
+        "title": "キャラを追加しよう！",
+        "content": "お気に入りの果物を読み込ませてみよう",
         "type": "setup",
         "image": ""
       },
       {
         "id": 2,
-        "title": "神様",
-        "content": "ららららららららら",
+        "title": "ステージを作ろう",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 3,
+        "title": "座標を設定しよう！",
+        "content": "",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 4,
+        "title": "落下のプログラムを作ろう",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 5,
+        "title": "当たり判定を追加しよう",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 6,
+        "title": "合体のロジックを作ろう",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 7,
+        "title": "いったんテストプレイ！！",
+        "content": "説明を入力してください",
+        "type": "setup",
+        "image": ""
+      },
+      {
+        "id": 8,
+        "title": "バグを修正しよう！",
+        "content": "説明を入力してください",
         "type": "setup",
         "image": ""
       }
